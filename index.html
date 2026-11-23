@@ -25,21 +25,26 @@
         }
 
         body.dark-mode {
-            --bg-main: #181d17;
-            --bg-card: #222920;
-            --primary: #82a878;         /* Xanh bơ sáng nhẹ cho nền tối */
-            --primary-light: #2b3628;
-            --primary-hover: #9bc291;
-            --accent: #e5b26b;
-            --accent-bg: #362e21;
-            --text-main: #e9efe7;
-            --text-muted: #9aa896;
-            --border: #333e30;
-            --success: #66bb6a;
-            --success-bg: #1e3322;
-            --danger: #ef5350;
-            --danger-bg: #3b2022;
-            --shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+            --bg-main: #090d16;         /* Nền chính đen ánh xanh navy sâu */
+            --bg-card: #111827;         /* Nền thẻ câu hỏi & sidebar xanh navy đậm */
+            --primary: #2b5b9e;         /* Xanh navy nổi bật cho nút & mục đang chọn */
+            --primary-light: #17253b;   /* Nền phụ xanh navy trầm */
+            --primary-hover: #366db8;
+            --accent: #e5b26b;          /* Vàng hoa sen giữ điểm nhấn ấm áp */
+            --accent-bg: #2a2217;
+            --text-main: #e2e8f0;       /* Chữ trắng dịu mắt */
+            --text-muted: #8b9bb4;      /* Chữ phụ xám xanh */
+            --border: #1e293b;          /* Viền xanh navy tối */
+            --success: #4ade80;
+            --success-bg: #112a22;
+            --danger: #f87171;
+            --danger-bg: #2d161c;
+            --shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
+        }
+
+        body.dark-mode .brand-box {
+            background: linear-gradient(135deg, #1d3557 0%, #0d192b 100%);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
         }
 
         * {
@@ -119,6 +124,10 @@
             font-size: 0.86rem;
             font-weight: 700;
             color: var(--primary);
+        }
+
+        body.dark-mode .upload-box p {
+            color: #7eb2ff;
         }
 
         .upload-box span {
@@ -204,6 +213,10 @@
             overflow: hidden;
         }
 
+        body.dark-mode .progress-track {
+            background: rgba(255, 255, 255, 0.12);
+        }
+
         .topic-item.active .progress-track {
             background: rgba(255, 255, 255, 0.25);
         }
@@ -216,7 +229,7 @@
         }
 
         .topic-item.active .progress-fill {
-            background: #c8e6c9;
+            background: #bae6fd;
         }
 
         .btn-delete-topic {
@@ -296,6 +309,10 @@
             gap: 6px;
         }
 
+        body.dark-mode .unit-motto {
+            color: #7eb2ff;
+        }
+
         /* Top Controls Bar */
         .toolbar {
             background: var(--bg-card);
@@ -373,7 +390,7 @@
 
         .btn-warning.active {
             background: var(--accent);
-            color: #fff;
+            color: #111827;
             border-color: var(--accent);
         }
 
@@ -410,6 +427,10 @@
             gap: 8px;
         }
 
+        body.dark-mode .multi-topic-header {
+            color: #7eb2ff;
+        }
+
         .multi-topic-chips {
             display: flex;
             flex-wrap: wrap;
@@ -437,6 +458,10 @@
             color: var(--primary);
         }
 
+        body.dark-mode .topic-chip.selected {
+            color: #93c5fd;
+        }
+
         .timer-badge {
             font-weight: 700;
             font-variant-numeric: tabular-nums;
@@ -445,6 +470,10 @@
             color: var(--primary);
             border-radius: 8px;
             font-size: 0.9rem;
+        }
+
+        body.dark-mode .timer-badge {
+            color: #93c5fd;
         }
 
         .timer-badge.danger {
@@ -502,6 +531,10 @@
             border-radius: 6px;
             font-size: 0.75rem;
             font-weight: 600;
+        }
+
+        body.dark-mode .topic-tag-badge {
+            color: #93c5fd;
         }
 
         .btn-flag {
@@ -694,19 +727,19 @@
         }
 
         .p-item.current {
-            outline: 2px solid var(--primary);
+            outline: 2px solid #60a5fa;
             outline-offset: 1px;
         }
 
         .p-item.answered {
             background: var(--primary-light);
             border-color: var(--primary);
-            color: var(--primary);
+            color: #93c5fd;
         }
 
         .p-item.correct {
             background: var(--success);
-            color: #fff;
+            color: #062814;
             border-color: var(--success);
         }
 
@@ -725,7 +758,7 @@
             height: 7px;
             background: var(--accent);
             border-radius: 50%;
-            box-shadow: 0 0 0 1px #fff;
+            box-shadow: 0 0 0 1px #090d16;
         }
 
         /* Chế độ xem dạng danh sách (List Study View) */
@@ -787,6 +820,10 @@
             font-size: 1.45rem;
             font-weight: 800;
             color: var(--primary);
+        }
+
+        body.dark-mode .score-big {
+            color: #93c5fd;
         }
 
         .mobile-toggle {
@@ -956,7 +993,7 @@
         // --- TRẠNG THÁI ỨNG DỤNG ---
         let topics = [];
         let currentTopicId = null;
-        let selectedExamTopicIds = new Set(); // Các chuyên đề được tích chọn khi thi thử
+        let selectedExamTopicIds = new Set();
         let workingQuestions = [];
         let currentIndex = 0;
         let userAnswers = {};
@@ -966,10 +1003,10 @@
         let activeFilter = null;     // null | 'wrong' | 'flag'
 
         // Lịch sử học tập bền vững
-        let wrongHistory = {};       // { topicId: Set(origIdx) }
-        let flagHistory = {};        // { topicId: Set(origIdx) }
-        let masteryHistory = {};     // { topicId: Set(origIdx) } -> Các câu đã trả lời đúng
-        let userNotes = {};          // { "topicId_origIdx": "ghi chú" }
+        let wrongHistory = {};
+        let flagHistory = {};
+        let masteryHistory = {};
+        let userNotes = {};
 
         // Tùy chọn hỗ trợ học tập
         let autoNext = false;
@@ -1021,7 +1058,6 @@
                 userNotes = JSON.parse(savedNotes);
             }
 
-            // Tự động tải các chuyên đề khai báo trong topics.json (nếu có trên server)
             try {
                 const res = await fetch('topics.json');
                 if (res.ok) {
@@ -1304,7 +1340,6 @@
             if (!flagHistory[currentTopicId]) flagHistory[currentTopicId] = new Set();
             if (!masteryHistory[currentTopicId]) masteryHistory[currentTopicId] = new Set();
 
-            // Khôi phục tiến độ đang làm dở nếu có
             if (restoreSession && mode === 'practice' && !activeFilter) {
                 const savedRaw = localStorage.getItem('buutho_session_' + currentTopicId);
                 if (savedRaw) {
@@ -1327,7 +1362,6 @@
 
             let list = [];
 
-            // Nếu ở chế độ Thi thử và chọn nhiều chuyên đề
             if (mode === 'exam' && selectedExamTopicIds.size > 0) {
                 selectedExamTopicIds.forEach(tId => {
                     const tObj = topics.find(item => item.id === tId);
@@ -1361,7 +1395,6 @@
                 list = list.filter(item => flagHistory[item._topicId]?.has(item._origIdx));
             }
 
-            // Nếu đang ở chế độ Thi thử và chọn giới hạn số câu ngẫu nhiên
             if (mode === 'exam') {
                 const limitVal = document.getElementById('examLimitSelect').value;
                 if (limitVal !== 'all') {
@@ -1374,7 +1407,6 @@
                 }
             }
 
-            // Nếu bật tính năng "Luôn đảo A-B-C-D"
             if (autoShuffleOpts && mode !== 'study') {
                 list.forEach(q => shuffleSingleQuestionOptions(q));
             }
@@ -1588,7 +1620,6 @@
                     wrongHistory[tId].add(currentQ._origIdx);
                     masteryHistory[tId].delete(currentQ._origIdx);
 
-                    // Chèn lại câu làm sai sau 3 câu kế tiếp để ôn lại ngay trong phiên
                     if (repeatWrongInSession && !currentQ._isRetry) {
                         const retryClone = {
                             ...currentQ,
@@ -1691,9 +1722,8 @@
                 return;
             }
 
-            // Chế độ Đọc lướt dạng toàn bộ danh sách (List View)
             if (mode === 'study' && studyLayout === 'list') {
-                const listHtml = workingQuestions.map((item, idx) => {
+                const listHtml = workingQuestions.map((item) => {
                     const noteKey = `${item._topicId || currentTopicId}_${item._origIdx}`;
                     const savedNote = userNotes[noteKey] || '';
                     return `
@@ -1796,7 +1826,6 @@
                             <div class="options-list">${optionsHtml}</div>
                             ${expHtml}
 
-                            <!-- Ghi chú cá nhân -->
                             <div class="note-box">
                                 <div class="note-label">
                                     <span>📝 Ghi chú / Mẹo nhớ riêng của bạn (Tự động lưu):</span>
