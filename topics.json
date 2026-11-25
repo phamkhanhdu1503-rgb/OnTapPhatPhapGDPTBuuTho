@@ -1,5 +1,9 @@
 [
   { "name": "Đề 1", "file": "Phật Pháp Đề 1.json" },
   { "name": "Đề 2", "file": "Phật Pháp Đề 2.json" },
-  { "name": "Đề 3", "file": "Phật Pháp Đề 3.json" }
+  { "name": "Đề 3", "file": "Phật Pháp Đề 3.json" },
+  { "name": "Đề 4", "file": "Phật Pháp Đề 4.json" },
+  { "name": "Đề 5", "file": "Phật Pháp Đề 5.json" },
+  { "name": "Đề 6", "file": "Phật Pháp Đề 6.json" }
+
 ]
