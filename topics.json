@@ -4,6 +4,13 @@
   { "name": "Đề 3", "file": "Phật Pháp Đề 3.json" },
   { "name": "Đề 4", "file": "Phật Pháp Đề 4.json" },
   { "name": "Đề 5", "file": "Phật Pháp Đề 5.json" },
-  { "name": "Đề 6", "file": "Phật Pháp Đề 6.json" }
-
+  { "name": "Đề 6", "file": "Phật Pháp Đề 6.json" },
+  { "name": "Chuyên Đề 1", "file":"Chuyên Đề 1.json" },
+  { "name": "Chuyên Đề 2", "file":"Chuyên Đề 2.json" },
+  { "name": "Chuyên Đề 3", "file":"Chuyên Đề 3.json" },
+  { "name": "Chuyên Đề 4", "file":"Chuyên Đề 4.json" },
+  { "name": "Chuyên Đề 5", "file":"Chuyên Đề 5.json" },
+  { "name": "Chuyên Đề 6", "file":"Chuyên Đề 6.json" },
+  { "name": "Chuyên Đề 7", "file":"Chuyên Đề 7.json" },
+  { "name": "Chuyên Đề 8", "file":"Chuyên Đề 8.json" }
 ]
