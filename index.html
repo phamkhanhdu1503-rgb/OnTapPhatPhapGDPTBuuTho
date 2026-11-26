@@ -963,6 +963,7 @@
             </div>
 
             <div class="toolbar-group">
+                <button class="btn active" id="btnSound" onclick="toggleSound()" title="Bật/tắt âm thanh thông báo đúng sai">🔊 Âm thanh: Bật</button>
                 <button class="btn" id="btnQuestionTimer" onclick="toggleQuestionTimer()" title="Mỗi câu có 10 giây để đọc, hết giờ tự tô đáp án đúng và nhảy câu">⏰ 10s/câu: Tắt</button>
                 <button class="btn" id="btnAutoShuffleOpts" onclick="toggleAutoShuffleOpts()" title="Giữ thứ tự câu hỏi nhưng luôn đảo vị trí A-B-C-D">🎲 Đảo A-B-C-D: Tắt</button>
                 <button class="btn" id="btnRepeatWrong" onclick="toggleRepeatWrong()" title="Tự động lặp lại câu vừa làm sai sau 3 câu">🔁 Lặp câu sai: Bật</button>
@@ -1055,6 +1056,7 @@
         let userNotes = {};
 
         // Tùy chọn hỗ trợ học tập
+        let soundEnabled = true;
         let autoNext = false;
         let autoShuffleOpts = false;
         let repeatWrongInSession = true;
@@ -1065,6 +1067,81 @@
         let questionTimeLeft = 10;
         let secondsCounter = 0;
         let searchQuery = '';
+
+        // --- BỘ TỔNG HỢP ÂM THANH (WEB AUDIO API - KHÔNG CẦN FILE NHẠC NGOÀI) ---
+        let audioCtx = null;
+
+        function playFeedbackSound(type) {
+            if (!soundEnabled) return;
+            try {
+                if (!audioCtx) {
+                    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+                    audioCtx = new AudioContextClass();
+                }
+                if (audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
+
+                const now = audioCtx.currentTime;
+
+                if (type === 'correct') {
+                    // Tiếng chuông đôi thanh thoát (C5 -> E5 -> G5)
+                    const notes = [523.25, 659.25, 783.99];
+                    notes.forEach((freq, idx) => {
+                        const osc = audioCtx.createOscillator();
+                        const gain = audioCtx.createGain();
+                        osc.type = 'sine';
+                        osc.frequency.setValueAtTime(freq, now + idx * 0.08);
+
+                        gain.gain.setValueAtTime(0.001, now + idx * 0.08);
+                        gain.gain.exponentialRampToValueAtTime(0.16, now + idx * 0.08 + 0.02);
+                        gain.gain.exponentialRampToValueAtTime(0.0001, now + idx * 0.08 + 0.35);
+
+                        osc.connect(gain);
+                        gain.connect(audioCtx.destination);
+                        osc.start(now + idx * 0.08);
+                        osc.stop(now + idx * 0.08 + 0.36);
+                    });
+                } else if (type === 'wrong') {
+                    // Tiếng trầm ngắn nhẹ nhàng báo sai / hết giờ
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(220, now);
+                    osc.frequency.exponentialRampToValueAtTime(145, now + 0.28);
+
+                    gain.gain.setValueAtTime(0.001, now);
+                    gain.gain.exponentialRampToValueAtTime(0.18, now + 0.02);
+                    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.3);
+
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start(now);
+                    osc.stop(now + 0.32);
+                } else if (type === 'select') {
+                    // Tiếng click nhẹ khi chọn đáp án ở chế độ Thi thử
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(440, now);
+
+                    gain.gain.setValueAtTime(0.06, now);
+                    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.07);
+
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start(now);
+                    osc.stop(now + 0.08);
+                }
+            } catch (e) {}
+        }
+
+        function toggleSound() {
+            soundEnabled = !soundEnabled;
+            localStorage.setItem('buutho_sound_v1', soundEnabled);
+            updateOptionToggleButtons();
+            if (soundEnabled) playFeedbackSound('correct');
+        }
 
         // --- KHỞI TẠO & LƯU TRỮ ---
         async function init() {
@@ -1078,12 +1155,14 @@
             const savedAutoShuffle = localStorage.getItem('buutho_autoshuffle_v1');
             const savedRepeatWrong = localStorage.getItem('buutho_repeatwrong_v1');
             const savedQTimer = localStorage.getItem('buutho_qtimer_v1');
+            const savedSound = localStorage.getItem('buutho_sound_v1');
 
             if (savedDark === 'true') {
                 document.body.classList.add('dark-mode');
                 document.getElementById('btnTheme').textContent = '☀️ Giao diện sáng';
             }
 
+            if (savedSound === 'false') soundEnabled = false;
             if (savedAutoNext === 'true') autoNext = true;
             if (savedAutoShuffle === 'true') autoShuffleOpts = true;
             if (savedRepeatWrong === 'false') repeatWrongInSession = false;
@@ -1579,6 +1658,10 @@
         }
 
         function updateOptionToggleButtons() {
+            const btnSound = document.getElementById('btnSound');
+            btnSound.classList.toggle('active', soundEnabled);
+            btnSound.textContent = soundEnabled ? '🔊 Âm thanh: Bật' : '🔇 Âm thanh: Tắt';
+
             const btnQTimer = document.getElementById('btnQuestionTimer');
             btnQTimer.classList.toggle('active', questionTimerEnabled);
             btnQTimer.textContent = questionTimerEnabled ? '⏰ 10s/câu: Bật' : '⏰ 10s/câu: Tắt';
@@ -1721,7 +1804,8 @@
         function handleQuestionTimeout() {
             if (userAnswers[currentIndex] !== undefined) return;
 
-            // Đánh dấu hết giờ (-1) để hệ thống tô đáp án đúng mà không chọn đáp án nào
+            playFeedbackSound('wrong');
+
             userAnswers[currentIndex] = -1;
             const currentQ = workingQuestions[currentIndex];
             const tId = currentQ._topicId || currentTopicId;
@@ -1775,6 +1859,8 @@
             if (!masteryHistory[tId]) masteryHistory[tId] = new Set();
 
             if (mode === 'practice') {
+                playFeedbackSound(isCorrect ? 'correct' : 'wrong');
+
                 if (isCorrect) {
                     wrongHistory[tId].delete(currentQ._origIdx);
                     masteryHistory[tId].add(currentQ._origIdx);
@@ -1802,6 +1888,8 @@
                         nextQuestion();
                     }, 650);
                 }
+            } else if (mode === 'exam') {
+                playFeedbackSound('select');
             }
 
             renderQuiz();
@@ -1818,6 +1906,7 @@
             examSubmitted = true;
             clearInterval(timerInterval);
             stopQuestionTimer();
+            playFeedbackSound('correct');
 
             let correctCount = 0;
             workingQuestions.forEach((q, idx) => {
