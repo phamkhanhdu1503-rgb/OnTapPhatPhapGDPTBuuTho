@@ -1189,17 +1189,26 @@
             }
 
             try {
-                const res = await fetch('topics.json');
+                // Thêm ?v=timestamp để tránh cache của trình duyệt
+                const cacheBuster = `?v=${new Date().getTime()}`;
+                const res = await fetch('topics.json' + cacheBuster);
                 if (res.ok) {
                     const presetList = await res.json();
                     for (const item of presetList) {
                         const presetId = 'preset_' + item.file;
-                        if (!topics.some(t => t.id === presetId)) {
-                            const dataRes = await fetch(item.file);
-                            if (dataRes.ok) {
-                                const raw = await dataRes.json();
-                                const qArray = Array.isArray(raw) ? raw : raw.data;
+                        const dataRes = await fetch(item.file + cacheBuster);
+                        if (dataRes.ok) {
+                            const raw = await dataRes.json();
+                            const qArray = Array.isArray(raw) ? raw : raw.data;
+                            const existingIdx = topics.findIndex(t => t.id === presetId);
+                            
+                            if (existingIdx === -1) {
+                                // Nếu là chuyên đề mới hoàn toàn thì thêm vào đầu danh sách
                                 topics.unshift({ id: presetId, name: item.name, data: qArray });
+                            } else {
+                                // Nếu đã có rồi thì ghi đè tên và bộ câu hỏi mới nhất từ GitHub
+                                topics[existingIdx].name = item.name;
+                                topics[existingIdx].data = qArray;
                             }
                         }
                     }
