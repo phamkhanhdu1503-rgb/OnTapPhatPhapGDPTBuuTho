@@ -964,7 +964,7 @@
 
             <div class="toolbar-group">
                 <button class="btn active" id="btnSound" onclick="toggleSound()" title="Bật/tắt âm thanh thông báo đúng sai">🔊 Âm thanh: Bật</button>
-                <button class="btn" id="btnQuestionTimer" onclick="toggleQuestionTimer()" title="Mỗi câu có 10 giây để đọc, hết giờ tự tô đáp án đúng và nhảy câu">⏰ 10s/câu: Tắt</button>
+                <button class="btn" id="btnQuestionTimer" onclick="toggleQuestionTimer()" title="Mỗi câu có 20 giây để đọc, hết giờ tự tô đáp án đúng và nhảy câu">⏰ 20s/câu: Tắt</button>
                 <button class="btn" id="btnAutoShuffleOpts" onclick="toggleAutoShuffleOpts()" title="Giữ thứ tự câu hỏi nhưng luôn đảo vị trí A-B-C-D">🎲 Đảo A-B-C-D: Tắt</button>
                 <button class="btn" id="btnRepeatWrong" onclick="toggleRepeatWrong()" title="Tự động lặp lại câu vừa làm sai sau 3 câu">🔁 Lặp câu sai: Bật</button>
                 <button class="btn" id="btnAutoNext" onclick="toggleAutoNext()" title="Tự động chuyển sang câu kế tiếp khi chọn đúng">⚡ Tự chuyển: Tắt</button>
@@ -1064,7 +1064,7 @@
         let autoNextTimeout = null;
         let timerInterval = null;
         let questionTimerInterval = null;
-        let questionTimeLeft = 10;
+        let questionTimeLeft = 20;
         let secondsCounter = 0;
         let searchQuery = '';
 
@@ -1673,7 +1673,7 @@
 
             const btnQTimer = document.getElementById('btnQuestionTimer');
             btnQTimer.classList.toggle('active', questionTimerEnabled);
-            btnQTimer.textContent = questionTimerEnabled ? '⏰ 10s/câu: Bật' : '⏰ 10s/câu: Tắt';
+            btnQTimer.textContent = questionTimerEnabled ? '⏰ 20s/câu: Bật' : '⏰ 20s/câu: Tắt';
 
             const btnNext = document.getElementById('btnAutoNext');
             btnNext.classList.toggle('active', autoNext);
@@ -1775,7 +1775,7 @@
             if (mode === 'exam' && examSubmitted) return;
             if (userAnswers[currentIndex] !== undefined) return;
 
-            questionTimeLeft = 10;
+            questionTimeLeft = 20;
             updateQuestionTimerUI();
 
             questionTimerInterval = setInterval(() => {
@@ -1795,12 +1795,12 @@
             const infoEl = document.getElementById('qTimerInfo');
             if (!textEl || !fillEl || !infoEl) return;
 
-            const pct = Math.max(0, (questionTimeLeft / 10) * 100);
+            const pct = Math.max(0, (questionTimeLeft / 20) * 100);
             fillEl.style.width = `${pct}%`;
 
             if (questionTimeLeft > 0) {
                 textEl.textContent = `${questionTimeLeft} giây`;
-                const isUrgent = questionTimeLeft <= 3;
+                const isUrgent = questionTimeLeft <= 5;
                 infoEl.classList.toggle('urgent', isUrgent);
                 fillEl.classList.toggle('urgent', isUrgent);
             } else {
@@ -2021,11 +2021,11 @@
 
             // Thanh hiển thị đếm ngược 10s
             const showQTimerBar = questionTimerEnabled && !isStudy && !(mode === 'exam' && examSubmitted);
-            const timerPct = isTimedOut ? 0 : (chosen !== undefined ? 100 : Math.max(0, (questionTimeLeft / 10) * 100));
+            const timerPct = isTimedOut ? 0 : (chosen !== undefined ? 100 : Math.max(0, (questionTimeLeft / 20) * 100));
             const timerLabel = isTimedOut
                 ? 'Hết giờ! Đã tô đáp án đúng'
                 : (chosen !== undefined ? 'Đã trả lời' : `${questionTimeLeft} giây`);
-            const isUrgent = isTimedOut || (chosen === undefined && questionTimeLeft <= 3);
+            const isUrgent = isTimedOut || (chosen === undefined && questionTimeLeft <= 5);
 
             const qTimerHtml = showQTimerBar ? `
                 <div class="q-timer-wrapper">
