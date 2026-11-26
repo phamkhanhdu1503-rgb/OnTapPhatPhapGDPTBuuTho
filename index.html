@@ -502,6 +502,51 @@
             border: 1px solid var(--border);
         }
 
+        /* --- THANH ĐẾM NGƯỢC 10 GIÂY MỖI CÂU --- */
+        .q-timer-wrapper {
+            margin-bottom: 14px;
+            background: var(--bg-main);
+            padding: 8px 12px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+
+        .q-timer-info {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 6px;
+        }
+
+        body.dark-mode .q-timer-info {
+            color: #93c5fd;
+        }
+
+        .q-timer-info.urgent {
+            color: var(--danger);
+        }
+
+        .q-timer-track {
+            width: 100%;
+            height: 6px;
+            background: var(--border);
+            border-radius: 6px;
+            overflow: hidden;
+        }
+
+        .q-timer-fill {
+            height: 100%;
+            background: var(--primary);
+            width: 100%;
+            transition: width 1s linear, background-color 0.3s;
+        }
+
+        .q-timer-fill.urgent {
+            background: var(--danger);
+        }
+
         .q-header {
             display: flex;
             justify-content: space-between;
@@ -918,6 +963,7 @@
             </div>
 
             <div class="toolbar-group">
+                <button class="btn" id="btnQuestionTimer" onclick="toggleQuestionTimer()" title="Mỗi câu có 10 giây để đọc, hết giờ tự tô đáp án đúng và nhảy câu">⏰ 10s/câu: Tắt</button>
                 <button class="btn" id="btnAutoShuffleOpts" onclick="toggleAutoShuffleOpts()" title="Giữ thứ tự câu hỏi nhưng luôn đảo vị trí A-B-C-D">🎲 Đảo A-B-C-D: Tắt</button>
                 <button class="btn" id="btnRepeatWrong" onclick="toggleRepeatWrong()" title="Tự động lặp lại câu vừa làm sai sau 3 câu">🔁 Lặp câu sai: Bật</button>
                 <button class="btn" id="btnAutoNext" onclick="toggleAutoNext()" title="Tự động chuyển sang câu kế tiếp khi chọn đúng">⚡ Tự chuyển: Tắt</button>
@@ -1012,8 +1058,11 @@
         let autoNext = false;
         let autoShuffleOpts = false;
         let repeatWrongInSession = true;
+        let questionTimerEnabled = false;
         let autoNextTimeout = null;
         let timerInterval = null;
+        let questionTimerInterval = null;
+        let questionTimeLeft = 10;
         let secondsCounter = 0;
         let searchQuery = '';
 
@@ -1028,6 +1077,7 @@
             const savedAutoNext = localStorage.getItem('buutho_autonext_v1');
             const savedAutoShuffle = localStorage.getItem('buutho_autoshuffle_v1');
             const savedRepeatWrong = localStorage.getItem('buutho_repeatwrong_v1');
+            const savedQTimer = localStorage.getItem('buutho_qtimer_v1');
 
             if (savedDark === 'true') {
                 document.body.classList.add('dark-mode');
@@ -1037,6 +1087,7 @@
             if (savedAutoNext === 'true') autoNext = true;
             if (savedAutoShuffle === 'true') autoShuffleOpts = true;
             if (savedRepeatWrong === 'false') repeatWrongInSession = false;
+            if (savedQTimer === 'true') questionTimerEnabled = true;
 
             updateOptionToggleButtons();
 
@@ -1333,6 +1384,7 @@
 
         function loadQuestionsFromTopic(restoreSession = false) {
             clearTimeout(autoNextTimeout);
+            stopQuestionTimer();
             const topic = topics.find(t => t.id === currentTopicId);
             if (!topic) return;
 
@@ -1354,6 +1406,7 @@
                             updateCounters();
                             resetTimer();
                             renderQuiz();
+                            startQuestionTimer();
                             return;
                         }
                     } catch (e) {}
@@ -1420,11 +1473,13 @@
             updateCounters();
             resetTimer();
             renderQuiz();
+            startQuestionTimer();
         }
 
         function shuffleQuestions() {
             if (workingQuestions.length === 0) return;
             clearTimeout(autoNextTimeout);
+            stopQuestionTimer();
 
             for (let i = workingQuestions.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
@@ -1440,6 +1495,7 @@
             saveSessionProgress();
             resetTimer();
             renderQuiz();
+            startQuestionTimer();
         }
 
         function toggleFilter(type) {
@@ -1491,6 +1547,18 @@
             renderQuiz();
         }
 
+        function toggleQuestionTimer() {
+            questionTimerEnabled = !questionTimerEnabled;
+            localStorage.setItem('buutho_qtimer_v1', questionTimerEnabled);
+            updateOptionToggleButtons();
+            renderQuiz();
+            if (questionTimerEnabled) {
+                startQuestionTimer();
+            } else {
+                stopQuestionTimer();
+            }
+        }
+
         function toggleAutoNext() {
             autoNext = !autoNext;
             localStorage.setItem('buutho_autonext_v1', autoNext);
@@ -1511,6 +1579,10 @@
         }
 
         function updateOptionToggleButtons() {
+            const btnQTimer = document.getElementById('btnQuestionTimer');
+            btnQTimer.classList.toggle('active', questionTimerEnabled);
+            btnQTimer.textContent = questionTimerEnabled ? '⏰ 10s/câu: Bật' : '⏰ 10s/câu: Tắt';
+
             const btnNext = document.getElementById('btnAutoNext');
             btnNext.classList.toggle('active', autoNext);
             btnNext.textContent = autoNext ? '⚡ Tự chuyển: Bật' : '⚡ Tự chuyển: Tắt';
@@ -1598,12 +1670,102 @@
             document.getElementById('timerDisplay').textContent = `${mins}:${secs}`;
         }
 
+        // --- LOGIC ĐẾM NGƯỢC 10 GIÂY MỖI CÂU ---
+        function stopQuestionTimer() {
+            clearInterval(questionTimerInterval);
+            questionTimerInterval = null;
+        }
+
+        function startQuestionTimer() {
+            stopQuestionTimer();
+            if (!questionTimerEnabled || workingQuestions.length === 0) return;
+            if (mode === 'study') return;
+            if (mode === 'exam' && examSubmitted) return;
+            if (userAnswers[currentIndex] !== undefined) return;
+
+            questionTimeLeft = 10;
+            updateQuestionTimerUI();
+
+            questionTimerInterval = setInterval(() => {
+                questionTimeLeft--;
+                updateQuestionTimerUI();
+
+                if (questionTimeLeft <= 0) {
+                    stopQuestionTimer();
+                    handleQuestionTimeout();
+                }
+            }, 1000);
+        }
+
+        function updateQuestionTimerUI() {
+            const textEl = document.getElementById('qTimerText');
+            const fillEl = document.getElementById('qTimerFill');
+            const infoEl = document.getElementById('qTimerInfo');
+            if (!textEl || !fillEl || !infoEl) return;
+
+            const pct = Math.max(0, (questionTimeLeft / 10) * 100);
+            fillEl.style.width = `${pct}%`;
+
+            if (questionTimeLeft > 0) {
+                textEl.textContent = `${questionTimeLeft} giây`;
+                const isUrgent = questionTimeLeft <= 3;
+                infoEl.classList.toggle('urgent', isUrgent);
+                fillEl.classList.toggle('urgent', isUrgent);
+            } else {
+                textEl.textContent = `Hết giờ! Đang chuyển câu...`;
+                infoEl.classList.add('urgent');
+                fillEl.classList.add('urgent');
+            }
+        }
+
+        function handleQuestionTimeout() {
+            if (userAnswers[currentIndex] !== undefined) return;
+
+            // Đánh dấu hết giờ (-1) để hệ thống tô đáp án đúng mà không chọn đáp án nào
+            userAnswers[currentIndex] = -1;
+            const currentQ = workingQuestions[currentIndex];
+            const tId = currentQ._topicId || currentTopicId;
+
+            if (!wrongHistory[tId]) wrongHistory[tId] = new Set();
+            if (!masteryHistory[tId]) masteryHistory[tId] = new Set();
+
+            if (mode === 'practice') {
+                wrongHistory[tId].add(currentQ._origIdx);
+                masteryHistory[tId].delete(currentQ._origIdx);
+
+                if (repeatWrongInSession && !currentQ._isRetry) {
+                    const retryClone = {
+                        ...currentQ,
+                        opts: [...currentQ.opts],
+                        _isRetry: true
+                    };
+                    if (autoShuffleOpts) shuffleSingleQuestionOptions(retryClone);
+                    const insertPos = Math.min(currentIndex + 4, workingQuestions.length);
+                    workingQuestions.splice(insertPos, 0, retryClone);
+                }
+                saveHistory();
+                saveSessionProgress();
+            }
+
+            // Vẽ lại giao diện để tô xanh đáp án đúng
+            renderQuiz();
+
+            // Dừng 1.5 giây cho người dùng nhìn đáp án đúng rồi tự động nhảy sang câu kế tiếp
+            if (currentIndex < workingQuestions.length - 1) {
+                clearTimeout(autoNextTimeout);
+                autoNextTimeout = setTimeout(() => {
+                    nextQuestion();
+                }, 1500);
+            }
+        }
+
         // --- CHỌN ĐÁP ÁN & LẶP CÂU SAI ---
         function selectOption(optIdx) {
             if (mode === 'study') return;
             if (mode === 'practice' && userAnswers[currentIndex] !== undefined) return;
             if (mode === 'exam' && examSubmitted) return;
 
+            stopQuestionTimer();
             userAnswers[currentIndex] = optIdx;
             const currentQ = workingQuestions[currentIndex];
             const tId = currentQ._topicId || currentTopicId;
@@ -1647,13 +1809,15 @@
 
         function submitExam(force = false) {
             if (examSubmitted) return;
-            const unanswered = workingQuestions.length - Object.keys(userAnswers).length;
+            const answeredCount = Object.values(userAnswers).filter(v => v !== undefined && v !== -1).length;
+            const unanswered = workingQuestions.length - answeredCount;
             if (!force && unanswered > 0 && !confirm(`Bạn còn ${unanswered} câu chưa chọn. Xác nhận nộp bài?`)) {
                 return;
             }
 
             examSubmitted = true;
             clearInterval(timerInterval);
+            stopQuestionTimer();
 
             let correctCount = 0;
             workingQuestions.forEach((q, idx) => {
@@ -1749,19 +1913,41 @@
             const q = workingQuestions[currentIndex];
             const tId = q._topicId || currentTopicId;
             const chosen = userAnswers[currentIndex];
+            const isTimedOut = (chosen === -1);
             const isStudy = (mode === 'study');
-            const showResult = isStudy || (mode === 'practice' && chosen !== undefined) || (mode === 'exam' && examSubmitted);
+            // Tô kết quả khi đang Đọc lướt, đã chọn/hết giờ ở Ôn tập, hết giờ ở Thi thử, hoặc đã nộp bài Thi thử
+            const showResult = isStudy || (mode === 'practice' && chosen !== undefined) || (mode === 'exam' && (examSubmitted || isTimedOut));
             const isFlagged = flagHistory[tId]?.has(q._origIdx);
             const noteKey = `${tId}_${q._origIdx}`;
             const currentNote = userNotes[noteKey] || '';
+
+            // Thanh hiển thị đếm ngược 10s
+            const showQTimerBar = questionTimerEnabled && !isStudy && !(mode === 'exam' && examSubmitted);
+            const timerPct = isTimedOut ? 0 : (chosen !== undefined ? 100 : Math.max(0, (questionTimeLeft / 10) * 100));
+            const timerLabel = isTimedOut
+                ? 'Hết giờ! Đã tô đáp án đúng'
+                : (chosen !== undefined ? 'Đã trả lời' : `${questionTimeLeft} giây`);
+            const isUrgent = isTimedOut || (chosen === undefined && questionTimeLeft <= 3);
+
+            const qTimerHtml = showQTimerBar ? `
+                <div class="q-timer-wrapper">
+                    <div class="q-timer-info ${isUrgent ? 'urgent' : ''}" id="qTimerInfo">
+                        <span>⏱️ Thời gian đọc câu hỏi</span>
+                        <span id="qTimerText">${timerLabel}</span>
+                    </div>
+                    <div class="q-timer-track">
+                        <div class="q-timer-fill ${isUrgent ? 'urgent' : ''}" id="qTimerFill" style="width: ${timerPct}%;"></div>
+                    </div>
+                </div>
+            ` : '';
 
             const optionsHtml = q.opts.map((optText, idx) => {
                 let cls = 'option-btn';
                 if (showResult) {
                     if (idx === q.ans) cls += ' correct';
-                    else if (!isStudy && idx === chosen) cls += ' wrong';
+                    else if (!isStudy && !isTimedOut && idx === chosen) cls += ' wrong';
                     else if (isStudy) cls += ' dimmed';
-                } else if (chosen === idx) {
+                } else if (chosen === idx && !isTimedOut) {
                     cls += ' selected';
                 }
 
@@ -1787,6 +1973,7 @@
             });
 
             const modeLabel = mode === 'practice' ? 'Ôn tập' : (mode === 'study' ? 'Đọc lướt' : 'Thi thử');
+            const validAnsweredCount = Object.values(userAnswers).filter(v => v !== undefined && v !== -1).length;
 
             const paletteHtml = workingQuestions.map((item, idx) => {
                 const matchSearch = searchQuery && !item.q.toLowerCase().includes(searchQuery.toLowerCase());
@@ -1798,6 +1985,8 @@
                 if (userAnswers[idx] !== undefined) {
                     if (mode === 'practice' || examSubmitted) {
                         cls += (userAnswers[idx] === item.ans) ? ' correct' : ' wrong';
+                    } else if (userAnswers[idx] === -1) {
+                        cls += ' wrong';
                     } else {
                         cls += ' answered';
                     }
@@ -1812,6 +2001,7 @@
                 <div class="quiz-layout">
                     <div>
                         <div class="question-card">
+                            ${qTimerHtml}
                             <div class="q-header">
                                 <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
                                     <span>Câu <b>${currentIndex + 1}</b> / ${workingQuestions.length} • <i>${modeLabel}</i></span>
@@ -1844,7 +2034,7 @@
                     <div class="palette-card">
                         <div class="palette-title">
                             <span>Bảng câu hỏi</span>
-                            <span>${Object.keys(userAnswers).length}/${workingQuestions.length}</span>
+                            <span>${validAnsweredCount}/${workingQuestions.length}</span>
                         </div>
                         <input type="text" class="search-input" placeholder="🔍 Tìm nhanh từ khóa câu hỏi..." value="${searchQuery}" oninput="handleSearch(this.value)">
                         ${(mode === 'practice' || examSubmitted) ? `
@@ -1872,26 +2062,32 @@
         // --- ĐIỀU HƯỚNG & PHÍM TẮT ---
         function goToQuestion(idx) {
             clearTimeout(autoNextTimeout);
+            stopQuestionTimer();
             currentIndex = idx;
             saveSessionProgress();
             renderQuiz();
+            startQuestionTimer();
         }
 
         function prevQuestion() {
             clearTimeout(autoNextTimeout);
+            stopQuestionTimer();
             if (currentIndex > 0) {
                 currentIndex--;
                 saveSessionProgress();
                 renderQuiz();
+                startQuestionTimer();
             }
         }
 
         function nextQuestion() {
             clearTimeout(autoNextTimeout);
+            stopQuestionTimer();
             if (currentIndex < workingQuestions.length - 1) {
                 currentIndex++;
                 saveSessionProgress();
                 renderQuiz();
+                startQuestionTimer();
             }
         }
 
